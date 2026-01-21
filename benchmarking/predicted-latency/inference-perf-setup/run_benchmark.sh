@@ -9,11 +9,11 @@ EXTERNAL_IP= <your external IP here> # for k8 runs
 SCENARIOS=(
   # Load + Prefix Cache
 
-  "scenario-A-predicted-latency-only-load-prefix-1 1 1 1 0 $INTERNAL_IP false 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
-  "scenario-A-predicted-latency-only-load-prefix-2 3 2 2 0 $INTERNAL_IP true 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
+  "scenario-A-load-prefix-1 1 1 1 0 $INTERNAL_IP false 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
+  "scenario-A-load-prefix-2 3 2 2 0 $INTERNAL_IP false 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
 
-  "scenario-A-predicted-latency-only-latency-predictor 0 0 0 1 $INTERNAL_IP true 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
-  "scenario-A-predicted-latency-only-k8 0 0 0 1 $EXTERNAL_IP true 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
+  "scenario-A-predicted-latency 0 0 0 1 $INTERNAL_IP false 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
+  "scenario-A-k8 0 0 0 1 $EXTERNAL_IP false 0.8 0.99 inference-perf-qwen-llm-d-comparison-final-179 0 0 true"
 
 
 )
