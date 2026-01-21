@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-llama3-8b-instruct-epp
+  namespace: default
+data:
+  default-plugins.yaml: |
+    apiVersion: inference.networking.x-k8s.io/v1alpha1
+    kind: EndpointPickerConfig
+    plugins:
+    - type: queue-scorer
+    - type: kv-cache-utilization-scorer
+    - type: prefix-cache-scorer
+      parameters:
+          blockSize: 64
+          maxPrefixBlocksToMatch: 2500
+          lruCapacityPerServer: 31250
+          autoTune: false
+    - type: predicted-latency-scorer
+      parameters:
+          samplingMean: 1000
+          maxSampledTokens: 5
+          streamingMode: ${STREAMING_MODE}
+          affinityGateTau: ${AFFINITY_GATE_TAU}
+          affinityGateTauGlobal: ${AFFINITY_GATE_TAU_GLOBAL}
+
+
+
+    schedulingProfiles:
+    - name: default
+      plugins:
+      - pluginRef: prefix-cache-scorer
+        weight: ${WEIGHT_PREFIX_CACHE}
+      - pluginRef: predicted-latency-scorer
+        weight: ${WEIGHT_PREDICTED_LATENCY}
+      - pluginRef: queue-scorer
+        weight: ${WEIGHT_QUEUE}
+      - pluginRef: kv-cache-utilization-scorer
+        weight: ${WEIGHT_KV_UTIL}
+    featureGates:
+      - prepareDataPlugins

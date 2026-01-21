@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    recommender.ai.gke.io/generated: "true"
+    recommender.ai.gke.io/inference-server: vllm
+    recommender.ai.gke.io/version: '{"generation_info": {"date": "October 10, 2025",
+      "gke_cluster_version": "1.32.3-gke.1785003", "gke_node_version": "1.32.3-gke.1785003",
+      "gpu_driver": "latest", "model_server": "vllm", "model_server_version": "v0.8.5.post1"},
+      "giq": "boq_gke-gkit-server_20251005.07_p0", "benchmark": "c1d578ac-c8fa-4610-9951-0c11e7c8b311"}'
+  creationTimestamp: null
+  labels:
+    app: vllm-llama3-8b-instruct
+    recommender.ai.gke.io/generated: "true"
+    recommender.ai.gke.io/inference-server: vllm
+  name: vllm-llama3-8b-instruct
+  namespace: default
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: vllm-llama3-8b-instruct
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        recommender.ai.gke.io/generated: "true"
+        recommender.ai.gke.io/inference-server: vllm
+        recommender.ai.gke.io/version: '{"generation_info": {"date": "October 10,
+          2025", "gke_cluster_version": "1.32.3-gke.1785003", "gke_node_version":
+          "1.32.3-gke.1785003", "gpu_driver": "latest", "model_server": "vllm", "model_server_version":
+          "v0.8.5.post1"}, "giq": "boq_gke-gkit-server_20251005.07_p0", "benchmark":
+          "c1d578ac-c8fa-4610-9951-0c11e7c8b311"}'
+      creationTimestamp: null
+      labels:
+        ai.gke.io/inference-server: vllm
+        ai.gke.io/model: qwen3-32b
+        app: vllm-llama3-8b-instruct
+        examples.ai.gke.io/source: blueprints
+        recommender.ai.gke.io/generated: "true"
+        recommender.ai.gke.io/inference-server: vllm
+    spec:
+      containers:
+      - args:
+        - --model=$(MODEL_ID)
+        - --disable-log-requests
+        - --tensor-parallel-size=2
+        #- --gpu-memory-utilization=0.95
+        #- --max-model-len=32768
+        #- --gpu-memory-utilization=0.85
+        #- --max-model-len=24000
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        env:
+        - name: MODEL_ID
+          value: Qwen/Qwen3-32B
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+        image: vllm/vllm-openai:v0.8.5.post1
+        name: inference-server
+        ports:
+        - containerPort: 8000
+          name: metrics
+        readinessProbe:
+          failureThreshold: 6000
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 10
+        resources:
+          limits:
+            nvidia.com/gpu: "2"
+          requests:
+            nvidia.com/gpu: "2"
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-h100-80gb
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: dshm
+status: {}
+
+
+
+---
+
+
+# Source: ModelServer/templates/pod-monitoring.yaml
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  labels:
+    app.kubernetes.io/name: vllm-podmonitoring
+    app.kubernetes.io/part-of: google-cloud-managed-prometheus
+  name: vllm-podmonitoring
+spec:
+  endpoints:
+  - interval: 5s
+    path: /metrics
+    port: 8000
+    scheme: http
+  selector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - vllm-llama3-8b-instruct
+
+---
+
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: vllm-epp-podmonitoring
+  labels:
+    app.kubernetes.io/name: vllm-epp-podmonitoring
+    app.kubernetes.io/part-of: google-cloud-managed-prometheus
+spec:
+  endpoints:
+  - interval: 5s
+    path: /metrics
+    port: 8000          # or "metrics" if you name the port in the epp container
+    scheme: http
+  selector:
+    matchLabels:
+      inferencepool: vllm-llama3-8b-instruct-epp
